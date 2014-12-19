@@ -20,8 +20,8 @@ API_RESPONSE_RESULT = 'result'
 API_RESPONSE_MESSAGE = 'statusMessage'
 
 def addSensor(deviceid, type, name, model, unit, userkey):
-    data = {'sensorid': "%s-%s" %(deviceid, type), 'sensorId': "%s-%s" %(deviceid, type), 'type': type, 'name': name, 'model': model, 'unit': unit}
-    r = requests.post(API_BASE_URL + "devices/%s/sensors" %(deviceid), data=json.dumps(data), headers={'token': userkey})
+    data = {'sensorid': u"%s-%s" %(deviceid, type), 'sensorId': u"%s-%s" %(deviceid, type), 'type': type, 'name': name, 'model': model, 'unit': unit}
+    r = requests.post(API_BASE_URL + u"devices/%s/sensors" %(deviceid), data=json.dumps(data), headers={'token': userkey})
     if r.status_code == requests.codes.ok and r.json()[API_RESPONSE_CODE] == 1:
         return data
     print "There is no available %s sensor binded to device '%s', and failed to register it." %(type, deviceid)
@@ -33,12 +33,10 @@ def isMatch(sensor, sensorDescriptions):
             return True
     return False
 
-def get_sensor_lists_from_device(device, sensorModel, userkey, sensorDescriptions):
+def get_sensor_lists_from_device(device, userkey, sensorDescriptions):
     sensors = {}
-    temp_sensors = []
-    humi_sensors = []
 
-    r = requests.get(API_BASE_URL + "devices/%s/sensors" %(device['deviceId']), headers={'token': userkey})
+    r = requests.get(API_BASE_URL + u"devices/%s/sensors" %(device['deviceId']), headers={'token': userkey})
     if r.status_code == requests.codes.ok and r.json()[API_RESPONSE_CODE] == 1:
         for sensor in r.json()[API_RESPONSE_RESULT]:
             if isMatch(sensor, sensorDescriptions):
@@ -56,7 +54,7 @@ def get_sensor_lists_from_device(device, sensorModel, userkey, sensorDescription
     sensors['deviceId'] = device['deviceId']
     return sensors
 
-def get_sensor_lists(userkey, deviceid, sensorModel, sensorDescriptions):
+def get_sensor_lists(userkey, deviceid, sensorDescriptions):
     """Get sensor lists from ZhyuIoT cloud."""
     r = requests.get(API_BASE_URL + "devices", headers={'token': userkey})
     if r.status_code == requests.codes.ok and r.json()[API_RESPONSE_CODE] == 1:
@@ -64,34 +62,34 @@ def get_sensor_lists(userkey, deviceid, sensorModel, sensorDescriptions):
         for device in devices:
             if deviceid is not None:
                 if deviceid == device['deviceId']:
-                    return get_sensor_lists_from_device(device, sensorModel, userkey, sensorDescriptions)
+                    return get_sensor_lists_from_device(device, userkey, sensorDescriptions)
             else:
-                return get_sensor_lists_from_device(device, sensorModel, userkey, sensorDescriptions)
+                return get_sensor_lists_from_device(device, userkey, sensorDescriptions)
 
         # add a device using given id as device name
         if deviceid is not None:
             data = {'deviceId': deviceid, 'deviceid': deviceid, 'name': socket.gethostname(), 'model': 'raspberry pi', 'macid': get_mac()}
             r = requests.post(API_BASE_URL + "devices", data=json.dumps(data), headers={'token': userkey})
             if r.status_code == requests.codes.ok and r.json()[API_RESPONSE_CODE] == 1:
-                return get_sensor_lists_from_device(data, sensorModel, userkey, sensorDescriptions)
+                return get_sensor_lists_from_device(data, userkey, sensorDescriptions)
 
-        print 'Unable to get the sensor info with specified device \'{0}\'.'.format(deviceid)
+        print u'Unable to get the sensor info with specified device \'{0}\'.'.format(deviceid)
         sys.exit(1)
     else:
-        print 'Unable to fetch the device info with specified userkey {0}.'.format(userkey)
+        print u'Unable to fetch the device info with specified userkey {0}.'.format(userkey)
         sys.exit(1)
 
 def update_sensors_data(sensor_lists, values, userkey):
     deviceid = sensor_lists['deviceId']
     sensor_lists.pop('deviceId', None)
     if len(sensor_lists) == 0:
-        print 'There is no {1} sensors registered in Lewei with device \'{0}\'.'.format(deviceid, ' or '.join(sensor_lists.keys()))
+        print u'There is no {1} sensors registered in Lewei with device \'{0}\'.'.format(deviceid, u' or '.join(sensor_lists.keys()))
         sys.exit(3)
     else:
         for sensorType, sensors in sensor_lists.items():
             data = {'value': values[sensorType]}
             for sensor in sensors:
-                r = requests.post(API_BASE_URL + "devices/%s/sensors/%s/data" %(deviceid, sensor['sensorId']),
+                r = requests.post(API_BASE_URL + u"devices/%s/sensors/%s/data" %(deviceid, sensor['sensorId']),
                     data=json.dumps(data), headers={'token': userkey})
                 if r.status_code == requests.codes.ok:
                     result = r.json()
